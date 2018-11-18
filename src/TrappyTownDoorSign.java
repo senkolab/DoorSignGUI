@@ -2,6 +2,7 @@
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.GpioPinDigitalInput;
+import com.pi4j.io.gpio.PinEdge;
 import com.pi4j.io.gpio.PinPullResistance;
 import com.pi4j.io.gpio.RaspiPin;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
@@ -44,6 +45,8 @@ public class TrappyTownDoorSign extends JFrame {
 
     private final int PORTNUM = 9000;
     private final String MCAST_ADDR = "230.0.0.0";
+    
+    public final int DEBOUNCE_TIME = 30;
 
     public static final int NUM_INDICATORS = 6;
     private final int[] INDICATOR_GRID = {2, 3};
@@ -58,10 +61,10 @@ public class TrappyTownDoorSign extends JFrame {
     private boolean[] _status;
 
     private GpioController _gpioController;
-    private GpioPinDigitalInput _gpioSwitch17;
-    private GpioPinDigitalInput _gpioSwitch22;
-    private GpioPinDigitalInput _gpioSwitch23;
-    private GpioPinDigitalInput _gpioSwitch27;
+    private GpioPinDigitalInput _gpioSwitch17;  // Pi4J pin GPIO 0
+    private GpioPinDigitalInput _gpioSwitch22;  // Pi4J pin GPIO 4
+    private GpioPinDigitalInput _gpioSwitch23;  // Pi4J pin GPIO 3
+    private GpioPinDigitalInput _gpioSwitch27;  // Pi4J pin GPIO 2
 
     private int _selectedIndicator;
 
@@ -168,7 +171,7 @@ public class TrappyTownDoorSign extends JFrame {
      */
     private void InitGpio() {
         _gpioController = GpioFactory.getInstance();
-        
+
         // notice the crazy pin numbering Pi4J came up with...does not match the
         // R-Pi docs.  https://pi4j.com/pins/model-2b-rev1.html
         _gpioSwitch17 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_00, PinPullResistance.PULL_UP);
@@ -176,13 +179,30 @@ public class TrappyTownDoorSign extends JFrame {
         _gpioSwitch23 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_04, PinPullResistance.PULL_UP);
         _gpioSwitch27 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_02, PinPullResistance.PULL_UP);
 
+        _gpioSwitch17.setDebounce(DEBOUNCE_TIME);
+        _gpioSwitch22.setDebounce(DEBOUNCE_TIME);
+        _gpioSwitch23.setDebounce(DEBOUNCE_TIME);
+        _gpioSwitch27.setDebounce(DEBOUNCE_TIME);
+        
+        
         _gpioSwitch17.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
-            selectNextIndicator();
+            if (gpdsce.getEdge() == PinEdge.FALLING) {
+                selectPrevIndicator();
+            }
         });
+        
         _gpioSwitch22.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
-            selectPrevIndicator();
+            if (gpdsce.getEdge() == PinEdge.FALLING) {
+                selectNextIndicator();
+            }
         });
-
+        _gpioSwitch27.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
+            if (gpdsce.getEdge() == PinEdge.FALLING) {
+                _status[_selectedIndicator] = !_status[_selectedIndicator];
+                transmitStatus();
+            }
+        });
+        
     }
 
     /**
@@ -202,7 +222,10 @@ public class TrappyTownDoorSign extends JFrame {
      * get the next indicator
      */
     public void selectNextIndicator() {
-        this._selectedIndicator = (_selectedIndicator + 1) % NUM_INDICATORS;
+        _selectedIndicator++;
+        if(_selectedIndicator >= NUM_INDICATORS)
+            _selectedIndicator = 0;
+        
         for (int n = 0; n < NUM_INDICATORS; n++) {
             _indicators[n].setSelected(n == _selectedIndicator);
         }
@@ -213,7 +236,10 @@ public class TrappyTownDoorSign extends JFrame {
      * get the next indicator
      */
     public void selectPrevIndicator() {
-        this._selectedIndicator = (_selectedIndicator - 1) % NUM_INDICATORS;
+        _selectedIndicator--;
+        if(_selectedIndicator < 0)
+            _selectedIndicator =  NUM_INDICATORS-1;
+
         for (int n = 0; n < NUM_INDICATORS; n++) {
             _indicators[n].setSelected(n == _selectedIndicator);
         }
