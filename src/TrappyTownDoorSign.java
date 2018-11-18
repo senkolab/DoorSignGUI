@@ -6,7 +6,6 @@ import com.pi4j.io.gpio.PinEdge;
 import com.pi4j.io.gpio.PinPullResistance;
 import com.pi4j.io.gpio.RaspiPin;
 import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
-import com.pi4j.io.gpio.event.GpioPinListener;
 import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import java.awt.BorderLayout;
 import java.awt.Color;
@@ -45,7 +44,8 @@ public class TrappyTownDoorSign extends JFrame {
 
     private final int PORTNUM = 9000;
     private final String MCAST_ADDR = "230.0.0.0";
-    
+
+    public static final int BLINK_TIME = 1000;
     public final int DEBOUNCE_TIME = 30;
 
     public static final int NUM_INDICATORS = 6;
@@ -72,16 +72,17 @@ public class TrappyTownDoorSign extends JFrame {
      * Constructor
      *
      * @param isListenerOnly
+     * @param labels
      * @throws UnknownHostException
      * @throws IOException
      */
-    public TrappyTownDoorSign(boolean isListenerOnly) throws UnknownHostException, IOException {
+    public TrappyTownDoorSign(boolean isListenerOnly, String[] labels) throws UnknownHostException, IOException {
         _isListenerOnly = isListenerOnly;
         InetAddress mcast_addr = InetAddress.getByName(MCAST_ADDR);
         _sender = new BroadcastSender(PORTNUM, mcast_addr);
         _receiver = new BroadcastReceiver(this, PORTNUM, mcast_addr);
 
-        InitComponents();
+        InitComponents(labels);
         InitSender();
         InitGpio();
     }
@@ -89,7 +90,7 @@ public class TrappyTownDoorSign extends JFrame {
     /**
      * Initialize
      */
-    private void InitComponents() {
+    private void InitComponents(String[] labels) {
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         this._mainpanel = new JPanel();
@@ -97,7 +98,7 @@ public class TrappyTownDoorSign extends JFrame {
         _indicators = new StatusLabel[NUM_INDICATORS];
         _status = new boolean[NUM_INDICATORS];
         for (int n = 0; n < _indicators.length; n++) {
-            _indicators[n] = new StatusLabel("Button " + n, Color.RED);
+            _indicators[n] = new StatusLabel(labels[n], Color.RED);
             _mainpanel.add(_indicators[n]);
         }
 
@@ -183,14 +184,13 @@ public class TrappyTownDoorSign extends JFrame {
         _gpioSwitch22.setDebounce(DEBOUNCE_TIME);
         _gpioSwitch23.setDebounce(DEBOUNCE_TIME);
         _gpioSwitch27.setDebounce(DEBOUNCE_TIME);
-        
-        
+
         _gpioSwitch17.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
             if (gpdsce.getEdge() == PinEdge.FALLING) {
                 selectPrevIndicator();
             }
         });
-        
+
         _gpioSwitch22.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
             if (gpdsce.getEdge() == PinEdge.FALLING) {
                 selectNextIndicator();
@@ -202,7 +202,7 @@ public class TrappyTownDoorSign extends JFrame {
                 transmitStatus();
             }
         });
-        
+
     }
 
     /**
@@ -223,9 +223,10 @@ public class TrappyTownDoorSign extends JFrame {
      */
     public void selectNextIndicator() {
         _selectedIndicator++;
-        if(_selectedIndicator >= NUM_INDICATORS)
+        if (_selectedIndicator >= NUM_INDICATORS) {
             _selectedIndicator = 0;
-        
+        }
+
         for (int n = 0; n < NUM_INDICATORS; n++) {
             _indicators[n].setSelected(n == _selectedIndicator);
         }
@@ -237,8 +238,9 @@ public class TrappyTownDoorSign extends JFrame {
      */
     public void selectPrevIndicator() {
         _selectedIndicator--;
-        if(_selectedIndicator < 0)
-            _selectedIndicator =  NUM_INDICATORS-1;
+        if (_selectedIndicator < 0) {
+            _selectedIndicator = NUM_INDICATORS - 1;
+        }
 
         for (int n = 0; n < NUM_INDICATORS; n++) {
             _indicators[n].setSelected(n == _selectedIndicator);
@@ -281,10 +283,10 @@ public class TrappyTownDoorSign extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 boolean doTransmitter;
-
+                String[] labels = {"650nm", "493nm", "553nm", "1762nm", "614nm", "405nm"};
                 doTransmitter = (args.length >= 1) && args[0].equalsIgnoreCase("Transmit");
 
-                TrappyTownDoorSign app = new TrappyTownDoorSign(!doTransmitter);
+                TrappyTownDoorSign app = new TrappyTownDoorSign(!doTransmitter, labels);
             } catch (IOException ex) {
                 Logger.getLogger(TrappyTownDoorSign.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -457,6 +459,9 @@ public class TrappyTownDoorSign extends JFrame {
         protected Color activeBackground;
         protected Color inactiveBackground;
         protected Border activeBorder;
+        protected boolean flashState;
+
+        protected Timer timer;
 
         /**
          * Constructor
@@ -468,9 +473,18 @@ public class TrappyTownDoorSign extends JFrame {
             super(s, c);
             this.activeBackground = c;
             this.inactiveBackground = Color.GRAY;
-            this.setStatus(false);
 
             this.setFont(new Font(this.getFont().getName(), Font.PLAIN, 30));
+            timer = new Timer(BLINK_TIME, (ActionEvent e) -> {
+                flashState = !flashState;
+                if (flashState) {
+                    this.setBackground(activeBackground);
+                } else {
+                    this.setBackground(inactiveBackground);
+                }
+            });
+            timer.setRepeats(true);
+            this.setStatus(false);
         }
 
         /**
@@ -480,8 +494,11 @@ public class TrappyTownDoorSign extends JFrame {
          */
         public void setStatus(boolean active) {
             if (active) {
-                this.setBackground(activeBackground);
+                timer.start();
+                timer.setRepeats(true);
             } else {
+                timer.setRepeats(false);
+                timer.stop();
                 this.setBackground(inactiveBackground);
             }
         }
