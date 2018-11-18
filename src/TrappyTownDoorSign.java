@@ -2,6 +2,11 @@
 import com.pi4j.io.gpio.GpioController;
 import com.pi4j.io.gpio.GpioFactory;
 import com.pi4j.io.gpio.GpioPinDigitalInput;
+import com.pi4j.io.gpio.PinPullResistance;
+import com.pi4j.io.gpio.RaspiPin;
+import com.pi4j.io.gpio.event.GpioPinDigitalStateChangeEvent;
+import com.pi4j.io.gpio.event.GpioPinListener;
+import com.pi4j.io.gpio.event.GpioPinListenerDigital;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Font;
@@ -24,6 +29,8 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.SwingUtilities;
 import javax.swing.Timer;
+import javax.swing.border.Border;
+import javax.swing.border.LineBorder;
 
 /**
  * Door sign GUI
@@ -38,6 +45,9 @@ public class TrappyTownDoorSign extends JFrame {
     private final int PORTNUM = 9000;
     private final String MCAST_ADDR = "230.0.0.0";
 
+    public static final int NUM_INDICATORS = 6;
+    private final int[] INDICATOR_GRID = {2, 3};
+
     private final BroadcastSender _sender;
     private final BroadcastReceiver _receiver;
     private CenteredLabel _titleLabel;
@@ -47,12 +57,13 @@ public class TrappyTownDoorSign extends JFrame {
     private final boolean _isListenerOnly;
     private boolean[] _status;
 
-    private GpioController _gpio;
-    private GpioPinDigitalInput _gpio17;
-    private GpioPinDigitalInput _gpio22;
-    private GpioPinDigitalInput _gpio23;
-    private GpioPinDigitalInput _gpio27;
-    
+    private GpioController _gpioController;
+    private GpioPinDigitalInput _gpioSwitch17;
+    private GpioPinDigitalInput _gpioSwitch22;
+    private GpioPinDigitalInput _gpioSwitch23;
+    private GpioPinDigitalInput _gpioSwitch27;
+
+    private int _selectedIndicator;
 
     /**
      * Constructor
@@ -79,9 +90,9 @@ public class TrappyTownDoorSign extends JFrame {
         this.setExtendedState(JFrame.MAXIMIZED_BOTH);
 
         this._mainpanel = new JPanel();
-        _mainpanel.setLayout(new GridLayout(2, 3));
-        _indicators = new StatusLabel[6];
-        _status = new boolean[6];
+        _mainpanel.setLayout(new GridLayout(INDICATOR_GRID[0], INDICATOR_GRID[1]));
+        _indicators = new StatusLabel[NUM_INDICATORS];
+        _status = new boolean[NUM_INDICATORS];
         for (int n = 0; n < _indicators.length; n++) {
             _indicators[n] = new StatusLabel("Button " + n, Color.RED);
             _mainpanel.add(_indicators[n]);
@@ -156,8 +167,21 @@ public class TrappyTownDoorSign extends JFrame {
      * Initialize GPIO buttons
      */
     private void InitGpio() {
-        _gpio = GpioFactory.getInstance();
-        _gpio17 = _gpio.provisionDigitalInputPin(pin)
+        _gpioController = GpioFactory.getInstance();
+        
+        // notice the crazy pin numbering Pi4J came up with...does not match the
+        // R-Pi docs.  https://pi4j.com/pins/model-2b-rev1.html
+        _gpioSwitch17 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_00, PinPullResistance.PULL_UP);
+        _gpioSwitch22 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_03, PinPullResistance.PULL_UP);
+        _gpioSwitch23 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_04, PinPullResistance.PULL_UP);
+        _gpioSwitch27 = _gpioController.provisionDigitalInputPin(RaspiPin.GPIO_02, PinPullResistance.PULL_UP);
+
+        _gpioSwitch17.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
+            selectNextIndicator();
+        });
+        _gpioSwitch22.addListener((GpioPinListenerDigital) (GpioPinDigitalStateChangeEvent gpdsce) -> {
+            selectPrevIndicator();
+        });
 
     }
 
@@ -170,7 +194,30 @@ public class TrappyTownDoorSign extends JFrame {
         for (int n = 0; n < status.length; n++) {
             _status[n] = status[n];
             _indicators[n].setStatus(status[n]);
+            _indicators[n].setSelected(n == _selectedIndicator);
         }
+    }
+
+    /**
+     * get the next indicator
+     */
+    public void selectNextIndicator() {
+        this._selectedIndicator = (_selectedIndicator + 1) % NUM_INDICATORS;
+        for (int n = 0; n < NUM_INDICATORS; n++) {
+            _indicators[n].setSelected(n == _selectedIndicator);
+        }
+
+    }
+
+    /**
+     * get the next indicator
+     */
+    public void selectPrevIndicator() {
+        this._selectedIndicator = (_selectedIndicator - 1) % NUM_INDICATORS;
+        for (int n = 0; n < NUM_INDICATORS; n++) {
+            _indicators[n].setSelected(n == _selectedIndicator);
+        }
+
     }
 
     /**
@@ -339,7 +386,7 @@ public class TrappyTownDoorSign extends JFrame {
          * @return
          */
         protected boolean[] decode(DatagramPacket dp) {
-            boolean[] result = new boolean[6];
+            boolean[] result = new boolean[TrappyTownDoorSign.NUM_INDICATORS];
             byte[] data = dp.getData();
             for (int n = 0; n < result.length; n++) {
                 result[n] = data[n] != 0;
@@ -379,10 +426,11 @@ public class TrappyTownDoorSign extends JFrame {
     /**
      * Centered Label
      */
-    protected class StatusLabel extends CenteredLabel {
+    protected final class StatusLabel extends CenteredLabel {
 
         protected Color activeBackground;
         protected Color inactiveBackground;
+        protected Border activeBorder;
 
         /**
          * Constructor
@@ -409,6 +457,19 @@ public class TrappyTownDoorSign extends JFrame {
                 this.setBackground(activeBackground);
             } else {
                 this.setBackground(inactiveBackground);
+            }
+        }
+
+        /**
+         * Set the border
+         *
+         * @param value
+         */
+        public void setSelected(boolean value) {
+            if (value) {
+                this.setBorder(new LineBorder(Color.BLACK, 2));
+            } else {
+                this.setBorder(null);
             }
         }
     }
