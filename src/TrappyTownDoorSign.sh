@@ -7,7 +7,7 @@
 
 THISPATH=`dirname $0`
 
-SRCFILE=TrappyTownDoorSign.java
+SRCFILE=${THISPATH}/TrappyTownDoorSign.java
 OBJFILE=TrappyTownDoorSign.class
 CLASSPATH="${THISPATH}:.:/opt/pi4j/lib/pi4j-core.jar"
 
