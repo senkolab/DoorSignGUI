@@ -113,7 +113,21 @@ public class TrappyTownDoorSign extends JFrame {
 
         _testButton = new JButton("Test");
         _testButton.setBackground(Color.GRAY);
-        this.add(_testButton, BorderLayout.SOUTH);
+        if(_isListenerOnly) {
+	      this.add(_testButton, BorderLayout.SOUTH);
+        }
+        else 
+	{
+            JPanel southpanel = new JPanel();
+            southpanel.setLayout(new GridLayout(1, 5));
+            southpanel.add(new CenteredLabel("<-", Color.GRAY));
+            southpanel.add(new CenteredLabel("->", Color.GRAY));
+            southpanel.add(_testButton);
+            southpanel.add(new CenteredLabel("", Color.GRAY));
+            southpanel.add(new CenteredLabel("Toggle", Color.GRAY));
+            this.add(southpanel, BorderLayout.SOUTH);
+        }
+
         _testButton.addActionListener((ActionEvent ae) -> {
             try {
                 _sender.send(new boolean[]{true, true, false, false, true, true});

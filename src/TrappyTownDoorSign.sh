@@ -14,6 +14,13 @@ CLASSPATH="${THISPATH}:.:/opt/pi4j/lib/pi4j-core.jar"
 # set display variable to show on local screen
 export DISPLAY=:0.0
 
+# parse args
+if [ "$1" = "master" ] ; then
+	ARG="Transmit"
+else
+	ARG=""
+fi
+
 # check for auto-rebuild
 if [ ! -f "$OBJFILE" ] || [ "$SRCFILE" -nt "$OBJFILE" ] ; then
 	echo "Rebuilding..."
@@ -22,4 +29,4 @@ fi
 
 # run
 echo "Running"
-java -cp ${CLASSPATH} TrappyTownDoorSign
+java -cp ${CLASSPATH} TrappyTownDoorSign ${ARG}
