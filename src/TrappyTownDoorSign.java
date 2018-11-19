@@ -504,10 +504,10 @@ public class TrappyTownDoorSign extends JFrame {
                 flashState = !flashState;
                 if (flashState) {
                     this.setBackground(activeBackground);
-		    this.setIcon(img);
+		    this.setEnabled(true);
                 } else {
                     this.setBackground(inactiveBackground);
-		    this.setIcon(null);
+		    this.setEnabled(false);
                 }
             });
             timer.setRepeats(true);
@@ -527,7 +527,7 @@ public class TrappyTownDoorSign extends JFrame {
 	    this.setHorizontalTextPosition(JLabel.CENTER);
             try {
                 img = new ImageIcon( ImageIO.read(new File(IconPath)) );
-                this.setIcon(img);
+		setIcon(img);
             } catch (IOException ex) {
                 Logger.getLogger(TrappyTownDoorSign.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -543,12 +543,11 @@ public class TrappyTownDoorSign extends JFrame {
             if (active) {
                 timer.start();
                 timer.setRepeats(true);
-                this.setEnabled(true);
             } else {
                 timer.setRepeats(false);
                 timer.stop();
                 this.setBackground(inactiveBackground);
-                this.setEnabled(false);
+		setEnabled(false);
             }
         }
 
