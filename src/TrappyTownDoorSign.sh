@@ -24,7 +24,7 @@ fi
 # check for auto-rebuild
 if [ ! -f "$OBJFILE" ] || [ "$SRCFILE" -nt "$OBJFILE" ] ; then
 	echo "Rebuilding..."
-	javac -cp ${CLASSPATH} $SRCFILE
+	javac -cp ${CLASSPATH} $SRCFILE || exit 1
 fi
 
 # run

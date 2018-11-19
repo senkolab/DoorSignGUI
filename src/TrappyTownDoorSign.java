@@ -31,6 +31,10 @@ import javax.swing.SwingUtilities;
 import javax.swing.Timer;
 import javax.swing.border.Border;
 import javax.swing.border.LineBorder;
+import java.io.File;
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import javax.swing.ImageIcon;
 
 /**
  * Door sign GUI
@@ -44,6 +48,7 @@ public class TrappyTownDoorSign extends JFrame {
 
     private final int PORTNUM = 9000;
     private final String MCAST_ADDR = "230.0.0.0";
+    private final String ICON_PATH="./laser.png";
 
     public static final int BLINK_TIME = 1000;
     public final int DEBOUNCE_TIME = 30;
@@ -98,7 +103,7 @@ public class TrappyTownDoorSign extends JFrame {
         _indicators = new StatusLabel[NUM_INDICATORS];
         _status = new boolean[NUM_INDICATORS];
         for (int n = 0; n < _indicators.length; n++) {
-            _indicators[n] = new StatusLabel(labels[n], Color.RED);
+            _indicators[n] = new StatusLabel(labels[n], Color.RED, ICON_PATH);
             _mainpanel.add(_indicators[n]);
         }
 
@@ -114,10 +119,10 @@ public class TrappyTownDoorSign extends JFrame {
         _testButton = new JButton("Test");
         _testButton.setBackground(Color.GRAY);
         if(_isListenerOnly) {
-	      this.add(_testButton, BorderLayout.SOUTH);
+          this.add(_testButton, BorderLayout.SOUTH);
         }
         else 
-	{
+    {
             JPanel southpanel = new JPanel();
             southpanel.setLayout(new GridLayout(1, 5));
             southpanel.add(new CenteredLabel("<-", Color.GRAY));
@@ -475,7 +480,7 @@ public class TrappyTownDoorSign extends JFrame {
      * Centered Label
      */
     protected final class StatusLabel extends CenteredLabel {
-
+        protected ImageIcon img = null;
         protected Color activeBackground;
         protected Color inactiveBackground;
         protected Border activeBorder;
@@ -499,13 +504,31 @@ public class TrappyTownDoorSign extends JFrame {
                 flashState = !flashState;
                 if (flashState) {
                     this.setBackground(activeBackground);
+		    this.setIcon(img);
                 } else {
                     this.setBackground(inactiveBackground);
+		    this.setIcon(null);
                 }
             });
             timer.setRepeats(true);
             this.setStatus(false);
         }
+
+        /**
+         * Constructor
+         *
+         * @param s
+         * @param c color
+         */
+        public StatusLabel(String s, Color c, String IconPath) {
+            this(s, c);
+            try {
+                img = new ImageIcon( ImageIO.read(new File(IconPath)) );
+            } catch (IOException ex) {
+                Logger.getLogger(TrappyTownDoorSign.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+
 
         /**
          * set the button status
@@ -516,10 +539,12 @@ public class TrappyTownDoorSign extends JFrame {
             if (active) {
                 timer.start();
                 timer.setRepeats(true);
+                this.setIcon(img);
             } else {
                 timer.setRepeats(false);
                 timer.stop();
                 this.setBackground(inactiveBackground);
+                this.setIcon(null);
             }
         }
 
