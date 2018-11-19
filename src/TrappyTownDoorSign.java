@@ -233,10 +233,15 @@ public class TrappyTownDoorSign extends JFrame {
      * @param status
      */
     public void updateButtons(boolean[] status) {
-        for (int n = 0; n < status.length; n++) {
-            _status[n] = status[n];
-            _indicators[n].setStatus(status[n]);
-            _indicators[n].setSelected(n == _selectedIndicator);
+        try {
+            for (int n = 0; n < status.length; n++) {
+                _status[n] = status[n];
+                _indicators[n].setStatus(status[n]);
+                _indicators[n].setSelected(n == _selectedIndicator);
+            }
+        }
+        finally {
+            ;
         }
     }
 
