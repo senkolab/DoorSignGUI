@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Application
+Name=DesktopGUI
+Comment=DoorSign GUI
+NoDisplay=true
+Exec=bash -c  "~/DoorSignGUI/src/TrappyTownDoorSign.sh > ~/TrappyTownDoorSign.err 2>&1"
+NotShowIn=GNOME;KDE;XFCE;
