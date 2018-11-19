@@ -171,6 +171,9 @@ public class TrappyTownDoorSign extends JFrame {
      * Initialize GPIO buttons
      */
     private void InitGpio() {
+        if(_isListenerOnly)
+            return;
+
         _gpioController = GpioFactory.getInstance();
 
         // notice the crazy pin numbering Pi4J came up with...does not match the
@@ -271,7 +274,10 @@ public class TrappyTownDoorSign extends JFrame {
             this._testButton.setText("Lost COMM");
         } else {
             this._testButton.setBackground(Color.GRAY);
-            this._testButton.setText("Online");
+            if(_isListenerOnly)
+                this._testButton.setText("Online");
+            else
+                this._testButton.setText("Online - Master");
         }
     }
 
