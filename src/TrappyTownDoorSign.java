@@ -48,7 +48,7 @@ public class TrappyTownDoorSign extends JFrame {
 
     private final int PORTNUM = 9000;
     private final String MCAST_ADDR = "230.0.0.0";
-    private final String ICON_PATH="./laser.png";
+    private final String ICON_PATH="laser.png";
 
     public static final int BLINK_TIME = 1000;
     public final int DEBOUNCE_TIME = 30;
@@ -526,7 +526,7 @@ public class TrappyTownDoorSign extends JFrame {
 	    this.setVerticalTextPosition(JLabel.TOP);
 	    this.setHorizontalTextPosition(JLabel.CENTER);
             try {
-                img = new ImageIcon( ImageIO.read(new File(IconPath)) );
+                img = new ImageIcon( ImageIO.read(getClass().getClassLoader().getResourceAsStream(IconPath)) );
 		setIcon(img);
             } catch (IOException ex) {
                 Logger.getLogger(TrappyTownDoorSign.class.getName()).log(Level.SEVERE, null, ex);
