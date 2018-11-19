@@ -522,6 +522,9 @@ public class TrappyTownDoorSign extends JFrame {
          */
         public StatusLabel(String s, Color c, String IconPath) {
             this(s, c);
+
+	    this.setVerticalTextPosition(JLabel.TOP);
+	    this.setHorizontalTextPosition(JLabel.CENTER);
             try {
                 img = new ImageIcon( ImageIO.read(new File(IconPath)) );
             } catch (IOException ex) {
