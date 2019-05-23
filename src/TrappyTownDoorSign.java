@@ -313,7 +313,7 @@ public class TrappyTownDoorSign extends JFrame {
         SwingUtilities.invokeLater(() -> {
             try {
                 boolean doTransmitter;
-                String[] labels = {"650nm", "493nm", "553nm", "1762nm", "614nm", "405nm"};
+                String[] labels = {"337nm","405nm","455nm","493nm","532nm","553nm","614nm","650nm","1762nm"};
                 doTransmitter = (args.length >= 1) && args[0].equalsIgnoreCase("Transmit");
 
                 TrappyTownDoorSign app = new TrappyTownDoorSign(!doTransmitter, labels);
